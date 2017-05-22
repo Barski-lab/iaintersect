@@ -1,8 +1,5 @@
 #include "iaintersect.hpp"
 
-
-
-
 IAIntersect::IAIntersect(QObject *parent):
     QObject(parent)
 {
@@ -15,40 +12,49 @@ IAIntersect::~IAIntersect()
 }
 
 void IAIntersect::fillUpAnnotation( ) {
-    QSqlQuery q;
-    q.prepare("select * from `"+db_name+"`.`"+an_tbl+"` where chrom not like '%control%' order by chrom,txStart,txEnd"); //chrom not like '%\\_%' and - random chr from hg
-    if(!q.exec()) {
-        qDebug()<<"Query error info: "<<q.lastError().text();
-        throw "Error query to DB";
+
+    if(gArgs().getArgs("annotation").toString().isEmpty()) {
+        throw "Set gene annotaion file";
     }
 
-    int fieldExCount = q.record().indexOf("exonCount");
-    int fieldExStarts = q.record().indexOf("exonStarts");
-    int fieldExEnds = q.record().indexOf("exonEnds");
-    int fieldName = q.record().indexOf("name");
-    int fieldName2 = q.record().indexOf("name2");
-    int fieldChrom = q.record().indexOf("chrom");
-    int fieldStrand = q.record().indexOf("strand");
-    int fieldTxStart= q.record().indexOf("txStart");
-    int fieldTxEnd= q.record().indexOf("txEnd");
+    string annotation_filename = gArgs().getArgs("annotation").toString().toStdString();
+    ifstream annotation_stream (annotation_filename.c_str());
+    if (!annotation_stream) {
+        throw "Failed to open annotaion file: "+ annotation_filename;
+    }
 
-    while(q.next()) {
-        QStringList q_starts=q.value(fieldExStarts).toString().split(QChar(','));
-        /*exon end positions*/
-        QStringList q_ends=q.value(fieldExEnds).toString().split(QChar(','));
-        /*exon count*/
-        int exCount=q.value(fieldExCount).toInt();
-        /*exon name*/
-        /*chromosome name*/
-        QString chr=q.value(fieldChrom).toString();
-        QChar strand=q.value(fieldStrand).toString().at(0);
-        /*iso name*/
-        QString iso_name=q.value(fieldName).toString();
-        /*gene name*/
-        QString g_name=q.value(fieldName2).toString();
-        quint64 txStart=q.value(fieldTxStart).toInt()+1;
-        quint64 txEnd=q.value(fieldTxEnd).toInt();
-        /*Variables to store start/end exon positions*/
+    std::string line;
+    getline(annotation_stream, line);
+    std::map<std::string,short> column_map;
+    if (line.length() > 0 and line[0] == "#"){
+        QStringList header_splitted = QString::fromStdString(line).split(QChar('\t'));
+        for (int i = 0; i < header_splitted.length(); i++){
+            column_map[header_splitted[i]] = i;
+        }
+    } else {
+        column_map["exonCount"] = 8;
+        column_map["exonStarts"] = 9;
+        column_map["exonEnds"] = 10;
+        column_map["name"] = 1;
+        column_map["name2"] = 12;
+        column_map["chrom"] = 2;
+        column_map["strand"] = 3;
+        column_map["txStart"] = 4;
+        column_map["txEnd"] = 5;
+    }
+
+    while(getline(annotation_stream, line)) {
+        QStringList line_splitted = QString::fromStdString(line).split(QChar('\t'));
+
+        QStringList q_starts = line_splitted.at(column_map["exonStarts"]).split(QChar(','));
+        QStringList q_ends = line_splitted.at(column_map["exonEnds"]).split(QChar(','));
+        int exCount = line_splitted.at(column_map["exonCount"]).toInt();
+        QString chr = line_splitted.at(column_map["chrom"]);
+        QChar strand = line_splitted.at(column_map["strand"]).at(0);
+        QString iso_name = line_splitted.at(column_map["name"]);
+        QString g_name = line_splitted.at(column_map["name2"]);
+        quint64 txStart = line_splitted.at(column_map["txStart"]).toInt()+1;
+        quint64 txEnd = line_splitted.at(column_map["txEnd"]).toInt();
 
         if(gArgs().getArgs("sam_ignorechr").toString().contains(chr)) {
             continue;
@@ -76,70 +82,47 @@ void IAIntersect::fillUpAnnotation( ) {
 
 }
 
-void IAIntersect::getRecordInfo() {
-    QSqlQuery q;
-    if(gArgs().getArgs("uid").toString()!="") {
-        q.prepare("select g.db,g.annottable,CONCAT(l.uid,'_islands') from labdata l,genome g where l.uid=? and g.id=l.genome_id");
-        q.bindValue(0, gArgs().getArgs("uid").toString());
-    }
 
-    if(gArgs().getArgs("guid").toString()!="") {
-        q.prepare("select g.db,g.annottable,gl.tableName from genelist gl,genome g where gl.id=? and gl.db=g.db");
-        q.bindValue(0, gArgs().getArgs("guid").toString());
-    }
+void IAIntersect::start() {
 
-    if(!q.exec()) {
-        qDebug()<<"Query error info: "<<q.lastError().text();
-        throw "Error query to DB";
-    }
-    q.next();
-    db_name=q.value(0).toString();
-    an_tbl=q.value(1).toString();
-    tbl_name=q.value(2).toString();
-}
-
-void IAIntersect::start()
-{
-    this->getRecordInfo();
     this->fillUpAnnotation();
-    QString tableName;
-
-    QSqlQuery q;
-    tableName=this->tbl_name;
-    q.prepare("describe `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"`");
-    if(!q.exec()) {
-        qDebug()<<"Cant describe "<<q.lastError().text();
-        throw "Error describe";
-    }
-    q.next();
-    bool alter=(q.value(0).toString()!="refseq_id");
-    q.clear();
-    //FIXIT change behavior later - just run each time!
-//    if(!alter && promoter==1000 && upstream==20000) {
-//        emit finished();
-//        return;
+//    QString tableName;
+//    QSqlQuery q;
+//    tableName=this->tbl_name;
+//    q.prepare("describe `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"`");
+//    if(!q.exec()) {
+//        qDebug()<<"Cant describe "<<q.lastError().text();
+//        throw "Error describe";
 //    }
-    //Fix table if no needed column
-    if(alter) {
-        if(!q.exec("ALTER TABLE `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"`"
-                   "ADD COLUMN `refseq_id` VARCHAR(500) NULL FIRST,"
-                   "ADD COLUMN `gene_id` VARCHAR(500) NULL AFTER `refseq_id`,"
-                   "ADD COLUMN `txStart` INT NULL after gene_id,"
-                   "ADD COLUMN `txEnd` INT NULL after txStart,"
-                   "ADD COLUMN `strand` VARCHAR(1) after txEnd,"
-                   "ADD COLUMN `region` VARCHAR(50),"
-                   "ADD INDEX `region_idx` USING BTREE (`region` ASC),"
-                   "ADD INDEX `txEnd_idx` USING BTREE (`txEnd` ASC),"
-                   "ADD INDEX `txStart_idx` USING BTREE (`txStart` ASC),"
-                   "ADD INDEX `gene_idx` USING BTREE (`gene_id`(100) ASC),"
-                   "ADD INDEX `strand` USING BTREE (`strand` ASC),"
-                   "ADD INDEX `refseq_idx` USING BTREE (`refseq_id`(100) ASC);"
-                   )){
-            qDebug()<<"Cant alter"<<q.lastError().text();
-            throw "Error alter";
-        }
-        q.clear();
-    }
+//    q.next();
+//    bool alter=(q.value(0).toString()!="refseq_id");
+//    q.clear();
+//    //FIXIT change behavior later - just run each time!
+////    if(!alter && promoter==1000 && upstream==20000) {
+////        emit finished();
+////        return;
+////    }
+//    //Fix table if no needed column
+//    if(alter) {
+//        if(!q.exec("ALTER TABLE `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"`"
+//                   "ADD COLUMN `refseq_id` VARCHAR(500) NULL FIRST,"
+//                   "ADD COLUMN `gene_id` VARCHAR(500) NULL AFTER `refseq_id`,"
+//                   "ADD COLUMN `txStart` INT NULL after gene_id,"
+//                   "ADD COLUMN `txEnd` INT NULL after txStart,"
+//                   "ADD COLUMN `strand` VARCHAR(1) after txEnd,"
+//                   "ADD COLUMN `region` VARCHAR(50),"
+//                   "ADD INDEX `region_idx` USING BTREE (`region` ASC),"
+//                   "ADD INDEX `txEnd_idx` USING BTREE (`txEnd` ASC),"
+//                   "ADD INDEX `txStart_idx` USING BTREE (`txStart` ASC),"
+//                   "ADD INDEX `gene_idx` USING BTREE (`gene_id`(100) ASC),"
+//                   "ADD INDEX `strand` USING BTREE (`strand` ASC),"
+//                   "ADD INDEX `refseq_idx` USING BTREE (`refseq_id`(100) ASC);"
+//                   )){
+//            qDebug()<<"Cant alter"<<q.lastError().text();
+//            throw "Error alter";
+//        }
+//        q.clear();
+//    }
     //Select Islands
     q.prepare("select distinct chrom,start,end from `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"` order by chrom,start,end ");
     if(!q.exec()) {

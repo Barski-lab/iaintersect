@@ -110,14 +110,4 @@ public:
 
 #define gArgs()  (Arguments::Instance())
 
-/*
-//#define gArgs_(n) \
-//	BOOST_PP_IF( \
-//	BOOST_PP_EQUAL(n,1),GARGS_INIT_1(), \
-//	BOOST_PP_IF( \
-//	BOOST_PP_GREATER(n,1),(*_gArgs), \
-//	BOOST_PP_EMPTY()))
-*/
-
-
 #endif // ARGUMENTS_HPP

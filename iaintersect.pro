@@ -37,10 +37,13 @@ INCLUDEPATH +=  . \
 HEADERS     +=  ./src/iaintersect.hpp \
                 ./src/Arguments.hpp \
                 ./src/main.hpp \
-                ./src/config.hpp
+                ./src/config.hpp \
+                ./src/peak_reader.hpp \
+                ./src/string_tools.hpp
 
 SOURCES     +=  ./src/main.cpp \
                 ./src/iaintersect.cpp \
-                ./src/Arguments.cpp
+                ./src/Arguments.cpp \
+                ./src/peak_reader.cpp
 
 QMAKE_CLEAN += $$TARGET logfile.log *~ *.txt

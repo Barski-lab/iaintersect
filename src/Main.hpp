@@ -143,10 +143,6 @@ int main( int _argc, char* _argv[] )
         _logfile.setFileName(gArgs().getArgs("log").toString());
         _logfile.open(QIODevice::WriteOnly|QIODevice::Append);
 
-#ifdef _WARDROBE_
-        gSettings().Init(gArgs().getArgs("wardrobe").toString());
-#endif
-
 #if QT_VERSION >= 0x050000
         qInstallMessageHandler(printMsgHandler);
 #else

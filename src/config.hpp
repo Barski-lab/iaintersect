@@ -22,12 +22,6 @@
 #ifndef _CONFIG_HPP_
 #define _CONFIG_HPP_
 
-#ifdef D_USE_SAM
-#ifdef D_USE_BAM
-#error "BAM and SAM cannot be defined together"
-#endif
-#endif
-
 #include <QCoreApplication>
 #include <QString>
 #include <QBitArray>
@@ -40,7 +34,6 @@
 #include <QSettings>
 #include <QTextCodec>
 #include <QObject>
-#include <QtSql>
 #include <QHash>
 #include <QState>
 #include <QStateMachine>
@@ -54,14 +47,6 @@
 #include <QSharedPointer>
 
 #include <Arguments.hpp>
-#include <Settings.hpp>
-
-#ifdef D_USE_BAM
-#include <api/BamMultiReader.h>
-#include <api/BamWriter.h>
-
-using namespace BamTools;
-#endif
 
 #include <typeinfo>
 #include <iostream>
