@@ -218,9 +218,9 @@ void Arguments::argsList(void)
     Arguments::addArg("in","in","inFileName",QVariant::String,"Input filename with MACS2 peak calling results, xls",QString(""));
     Arguments::addArg("out","out","outFileName",QVariant::String,"Base output file name",QString(""));
     Arguments::addArg("annotation","a","annotationFileName",QVariant::String,"Tab-separated annotation file",QString(""));
-    Arguments::addArg("log","log","logFileName",QVariant::String,"log file name (default is ./logfile_def.log)",QString("./logfile_def.log"));
-    Arguments::addArg("promoter","promoter","",QVariant::Int,"Promoter region around TSS in bp.",1000);
-    Arguments::addArg("upstream","upstream","",QVariant::Int,"Upstream region before promoter in BP",20000);
+    Arguments::addArg("log","log","logFileName",QVariant::String,"Log filename (default is ./logfile_def.log)",QString("./logfile_def.log"));
+    Arguments::addArg("promoter","promoter","",QVariant::Int,"Promoter region around TSS in bp",1000);
+    Arguments::addArg("upstream","upstream","",QVariant::Int,"Upstream region before promoter in bp",20000);
     Arguments::addArg("sam_ignorechr","sam_ignorechr","SAM/IGNORECHR",QVariant::String,"The chromosome to be ignored",QString(""));//chrM
 }
 
