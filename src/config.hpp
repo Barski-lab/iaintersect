@@ -50,12 +50,14 @@
 
 #include <typeinfo>
 #include <iostream>
+#include <fstream>
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
 #include <string>
 #include <vector>
 #include <math.h>
+#include <iomanip>
 using namespace std;
 
 #ifndef Q_MOC_RUN
@@ -68,7 +70,9 @@ using namespace std;
  #include <boost/icl/separate_interval_set.hpp>
  #include <boost/icl/concept/set_value.hpp>
  #include <boost/icl/concept/map_value.hpp>
- //#include <boost/shared_ptr.hpp>
+ #include <boost/shared_ptr.hpp>
+ #include <boost/algorithm/string.hpp>
+ #include <boost/lexical_cast.hpp>
 namespace bicl = boost::icl;
 #endif
 #endif

@@ -20,16 +20,16 @@ void IAIntersect::fillUpAnnotation( ) {
     string annotation_filename = gArgs().getArgs("annotation").toString().toStdString();
     ifstream annotation_stream (annotation_filename.c_str());
     if (!annotation_stream) {
-        throw "Failed to open annotaion file: "+ annotation_filename;
+        throw "Failed to open annotaion file";
     }
 
     std::string line;
     getline(annotation_stream, line);
     std::map<std::string,short> column_map;
-    if (line.length() > 0 and line[0] == "#"){
+    if (line.length() > 0 && line.at(0) == '#'){
         QStringList header_splitted = QString::fromStdString(line).split(QChar('\t'));
         for (int i = 0; i < header_splitted.length(); i++){
-            column_map[header_splitted[i]] = i;
+            column_map[header_splitted.at(i).toStdString()] = i;
         }
     } else {
         column_map["exonCount"] = 8;
@@ -56,13 +56,16 @@ void IAIntersect::fillUpAnnotation( ) {
         quint64 txStart = line_splitted.at(column_map["txStart"]).toInt()+1;
         quint64 txEnd = line_splitted.at(column_map["txEnd"]).toInt();
 
+
+
         if(gArgs().getArgs("sam_ignorechr").toString().contains(chr)) {
             continue;
         }
 
-        annotationPtr p(   new Annotation(chr,strand,exCount,q_starts,q_ends,iso_name,g_name,txStart,txEnd)   );
+        annotationPtr p( new Annotation(chr,strand,exCount,q_starts,q_ends,iso_name,g_name,txStart,txEnd) );
 
-        QSet<annotationPtr> aptr; aptr.insert(p);
+        QSet<annotationPtr> aptr;
+        aptr.insert(p);
 
         if(strand=='+') {
             if(promoter+upstream >txStart)
@@ -74,7 +77,7 @@ void IAIntersect::fillUpAnnotation( ) {
         }
         annotation[chr].add(make_pair(bicl::discrete_interval<t_genome_coordinates>::closed(txStart,txEnd),aptr));
         for(int j=0;j<exCount;j++) {
-            quint64 s=q_starts.at(j).toInt(),e=q_ends.at(j).toInt();
+            int s=q_starts.at(j).toInt(),e=q_ends.at(j).toInt();
             annotation[chr].add(make_pair(bicl::discrete_interval<t_genome_coordinates>::closed(s,e),aptr));
         }
 
@@ -84,64 +87,31 @@ void IAIntersect::fillUpAnnotation( ) {
 
 
 void IAIntersect::start() {
-
     this->fillUpAnnotation();
-//    QString tableName;
-//    QSqlQuery q;
-//    tableName=this->tbl_name;
-//    q.prepare("describe `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"`");
-//    if(!q.exec()) {
-//        qDebug()<<"Cant describe "<<q.lastError().text();
-//        throw "Error describe";
-//    }
-//    q.next();
-//    bool alter=(q.value(0).toString()!="refseq_id");
-//    q.clear();
-//    //FIXIT change behavior later - just run each time!
-////    if(!alter && promoter==1000 && upstream==20000) {
-////        emit finished();
-////        return;
-////    }
-//    //Fix table if no needed column
-//    if(alter) {
-//        if(!q.exec("ALTER TABLE `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"`"
-//                   "ADD COLUMN `refseq_id` VARCHAR(500) NULL FIRST,"
-//                   "ADD COLUMN `gene_id` VARCHAR(500) NULL AFTER `refseq_id`,"
-//                   "ADD COLUMN `txStart` INT NULL after gene_id,"
-//                   "ADD COLUMN `txEnd` INT NULL after txStart,"
-//                   "ADD COLUMN `strand` VARCHAR(1) after txEnd,"
-//                   "ADD COLUMN `region` VARCHAR(50),"
-//                   "ADD INDEX `region_idx` USING BTREE (`region` ASC),"
-//                   "ADD INDEX `txEnd_idx` USING BTREE (`txEnd` ASC),"
-//                   "ADD INDEX `txStart_idx` USING BTREE (`txStart` ASC),"
-//                   "ADD INDEX `gene_idx` USING BTREE (`gene_id`(100) ASC),"
-//                   "ADD INDEX `strand` USING BTREE (`strand` ASC),"
-//                   "ADD INDEX `refseq_idx` USING BTREE (`refseq_id`(100) ASC);"
-//                   )){
-//            qDebug()<<"Cant alter"<<q.lastError().text();
-//            throw "Error alter";
-//        }
-//        q.clear();
-//    }
-    //Select Islands
-    q.prepare("select distinct chrom,start,end from `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"` order by chrom,start,end ");
-    if(!q.exec()) {
-        qDebug()<<"Query error info: "<<q.lastError().text();
-        throw "Error query to DB";
+
+    if(gArgs().getArgs("in").toString().isEmpty()){
+        throw "Set input file";
+    }
+    if(gArgs().getArgs("out").toString().isEmpty()){
+        throw "Set output file";
     }
 
-    while(q.next()) {
+    PeakReader peak_reader (gArgs().getArgs("in").toString().toStdString());
+
+    peak_reader.reset();
+    do {
+//        cout << peak_reader.coordinates().chr << '\t' << peak_reader.coordinates().start << '\t' << peak_reader.coordinates().end << endl;
         QStringList GENE_NAME;
         QStringList REFSEQ_NAME;
         int txStart;
         int txEnd;
         QChar strand;
 
-        QString chr=q.value(0).toString();
-        int start=q.value(1).toInt();
-        int end=q.value(2).toInt();
-        if(!annotation.keys().contains(chr)) continue;
+        QString chr=QString::fromStdString(peak_reader.coordinates().chr);
+        int start=peak_reader.coordinates().start;
+        int end=peak_reader.coordinates().end;
 
+        if(!annotation.keys().contains(chr)) continue;
         bicl::discrete_interval<t_genome_coordinates> current_region=bicl::discrete_interval<t_genome_coordinates>::closed(start,end);
         pair<chrom_coverage::iterator,chrom_coverage::iterator> pi=annotation[chr].equal_range(current_region);
 
@@ -189,20 +159,8 @@ void IAIntersect::start() {
                 gene_name+=","+GENE_NAME.value(i);
                 refseq_name+=","+REFSEQ_NAME.value(i);
             }
-            QSqlQuery _q;
-            _q.prepare("update `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"` "
-                      "set refseq_id=?,gene_id=?,txStart=?,txEnd=?,strand=?,region='intergenic' where chrom=? and start=? and end=?");
-            _q.bindValue(0,refseq_name);
-            _q.bindValue(1,gene_name);
-            _q.bindValue(2,txStart);
-            _q.bindValue(3,txEnd);
-            _q.bindValue(4,strand);
-            _q.bindValue(5,chr);
-            _q.bindValue(6,start);
-            _q.bindValue(7,end);
-            if(!_q.exec()) {
-                qDebug()<<"Query error info: "<<_q.lastError().text();
-                throw "Error query to DB";
+            if(!peak_reader.update(chr.toStdString(), start, end, GeneInfo(refseq_name.toStdString(), gene_name.toStdString(), txStart, txEnd, strand.toLatin1(), "intergenic")) ) {
+                throw "Error updating islands";
             }
             continue;
         }
@@ -210,7 +168,7 @@ void IAIntersect::start() {
 
         while(pi.first!=pi.second){
             //chrom_coverage::interval_type itv = bicl::key_value<chrom_coverage >(pi.first);
-            //qDebug()<<chr<<"["<<itv.lower()<<":"<<itv.upper()<<"]=["<<start<<":"<<end<<"]";
+//            qDebug()<<chr<<"["<<itv.lower()<<":"<<itv.upper()<<"]=["<<start<<":"<<end<<"]";
 
             QSetIterator<annotationPtr> i((*(pi.first)).second);
             while(i.hasNext()){
@@ -220,12 +178,12 @@ void IAIntersect::start() {
                 bicl::discrete_interval<t_genome_coordinates> _gene;
 
                 if(p->strand=='+') {
-                    qint64 beg=p->txStart-promoter;
+                    int beg=p->txStart-promoter;
                     _promoter =bicl::discrete_interval<t_genome_coordinates>::closed( ( beg< 0 ) ? 0: (beg),p->txStart+promoter);
                     beg-=upstream;
                     _upstream=bicl::discrete_interval<t_genome_coordinates>::closed( (beg)? 0: (beg),p->txStart-promoter);
                 } else {
-                    qint64 beg=p->txEnd-promoter;
+                    int beg=p->txEnd-promoter;
                     _promoter =bicl::discrete_interval<t_genome_coordinates>::closed( (beg <0 )?0:(beg),p->txEnd+promoter);
                     _upstream =bicl::discrete_interval<t_genome_coordinates>::closed( p->txEnd+promoter,p->txEnd+promoter+upstream);
                 }
@@ -266,17 +224,6 @@ void IAIntersect::start() {
                     continue;
                 }
             }//while i.hasnext
-
-            /*
-            while(i.hasNext()){
-                annotationPtr p(i.next());
-                qDebug()<<p->name<<
-                          p->name2<<
-                          p->txStart<<
-                          p->txEnd<<
-                          p->exonStarts;
-            }
-            //*/
             pi.first++;
         }//while end!=begin
 
@@ -320,22 +267,14 @@ void IAIntersect::start() {
             gene_name+=","+GENE_NAME.value(i);
             refseq_name+=","+REFSEQ_NAME.value(i);
         }
-        QSqlQuery _q;
-        _q.prepare("update `"+gSettings().getValue("experimentsdb")+"`.`"+tableName+"` "
-                  "set refseq_id=?,gene_id=?,txStart=?,txEnd=?,strand=?,region='"+region+"' where chrom=? and start=? and end=?");
-        _q.bindValue(0,refseq_name);
-        _q.bindValue(1,gene_name);
-        _q.bindValue(2,txStart);
-        _q.bindValue(3,txEnd);
-        _q.bindValue(4,strand);
-        _q.bindValue(5,chr);
-        _q.bindValue(6,start);
-        _q.bindValue(7,end);
-        if(!_q.exec()) {
-            qDebug()<<"Query error info: "<<_q.lastError().text();
-            throw "Error query to DB";
+        if(!peak_reader.update(chr.toStdString(), start, end, GeneInfo(refseq_name.toStdString(), gene_name.toStdString(), txStart, txEnd, strand.toLatin1(), region.toStdString())) ){
+            throw "Error updating islands";
         }
+    } while (peak_reader.next());
 
+    if ( !peak_reader.save( gArgs().getArgs("out").toString().toStdString() ) ){
+        throw "Error export results";
     }
+
     emit finished();
 }

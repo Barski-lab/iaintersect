@@ -108,9 +108,9 @@ class App : public QCoreApplication
         {
             return QCoreApplication::notify(receiver, event);
         }
-        catch(char *str)
+        catch(char const *str)
         {
-            cerr << "Error rised:"<<str << endl;
+            cerr << "Error rised: " << str << endl;
         }
         catch(exception &e )
         {
@@ -119,6 +119,7 @@ class App : public QCoreApplication
         }
         catch(...)
         {
+            cerr << "Unknown failure occurred. Possible memory corruption" << std::endl;
         }
         emit quit();
         return false;
@@ -132,7 +133,6 @@ int main( int _argc, char* _argv[] )
 
         QCoreApplication::setOrganizationName("genome-tools");
         QCoreApplication::setApplicationName(_APPNAME);
-
         gArgs().Init(QCoreApplication::arguments());
         for(int j=1; j< _argc;j++) {
               QString s(_argv[j]);
@@ -142,13 +142,11 @@ int main( int _argc, char* _argv[] )
         }
         _logfile.setFileName(gArgs().getArgs("log").toString());
         _logfile.open(QIODevice::WriteOnly|QIODevice::Append);
-
 #if QT_VERSION >= 0x050000
         qInstallMessageHandler(printMsgHandler);
 #else
         qInstallMsgHandler(printMsgHandler);
 #endif
-
         FSTM *machine = new FSTM();
         QObject::connect(machine,SIGNAL(finished()),QCoreApplication::instance(),SLOT(quit()));
         QTimer::singleShot(0, machine, SLOT(start()));
@@ -156,15 +154,16 @@ int main( int _argc, char* _argv[] )
     }
     catch(char *str)
     {
-        cerr << "Error rised:"<<str << endl;
+        cerr << "Error rised: " << str << endl;
     }
-    catch(exception &e )
+    catch(exception &e)
     {
-        cerr << "Caught " << e.what( ) << endl;
-        cerr << "Type " << typeid( e ).name( ) << endl;
+        cerr << "Caught " << e.what() << endl;
+        cerr << "Type " << typeid(e).name() << endl;
     }
     catch(...)
     {
+        cerr << "Unknown failure occurred. Possible memory corruption" << std::endl;
     }
 }
 

@@ -5,13 +5,15 @@
 #include "string_tools.hpp"
 
 class GeneInfo {
+public:
     std::string refseq_id;
     std::string gene_id;
-    long txStart;
-    long txEnd;
-    bool strand;
+    int txStart;
+    int txEnd;
+    char strand;
     std::string region;
-    GeneInfo (std::string new_refseq_id, std::string new_gene_id, long new_txStart, long new_txEnd, bool new_strand, std::string new_region)
+
+    GeneInfo (std::string new_refseq_id, std::string new_gene_id, int new_txStart, int new_txEnd, char new_strand, std::string new_region)
         : refseq_id (new_refseq_id)
         , gene_id (new_gene_id)
         , txStart (new_txStart)
@@ -19,16 +21,28 @@ class GeneInfo {
         , strand (new_strand)
         , region (new_region)
     {
+    };
 
-    }
+    GeneInfo()
+        : refseq_id ("")
+        , gene_id ("")
+        , txStart (0)
+        , txEnd (0)
+        , strand ('+')
+        , region ("")
+    {
+
+    };
+    void print ();
 };
 
 class PeakRecord {
+public:
     std::string chr;
-    long start;
-    long end;
+    int start;
+    int end;
     int length;
-    long abs_summit;
+    int abs_summit;
     double pileup;
     double log10p;
     double fold_enrichment;
@@ -36,15 +50,16 @@ class PeakRecord {
     std::string name;
     GeneInfo gene_info;
     PeakRecord (const std::string & line);
+    void print();
 };
 
 typedef boost::shared_ptr<PeakRecord> PeakRecordPtr;
 
 struct Coord{
     std::string chr;
-    long start;
-    long end;
-    Coord (std::string new_chr, long new_start, long new_end)
+    int start;
+    int end;
+    Coord (std::string new_chr, int new_start, int new_end)
         : chr (new_chr)
         , start (new_start)
         , end (new_end)
@@ -56,22 +71,27 @@ struct Coord{
 class PeakReader {
 private:
     // [chromosome][peak start][peak end] = vector of PeakRecord
-    std::map<std::string, std::map<long, std::map<long, std::vector<PeakRecordPtr> > > > peak_data;
+    std::map<std::string, std::map<int, std::map<int, std::vector<PeakRecordPtr> > > > peak_data;
     bool include_chr(const std::string chr);
-    bool include_start(const std::string chr, long start);
-    bool include_end(const std::string chr, long start, long end);
-    std::map<std::string, std::map<long, std::map<long, std::vector<PeakRecordPtr> > > >::iterator chr_it;
-    std::map<long, std::map<long, std::vector<PeakRecordPtr> > > start_it;
-    std::map<long, std::vector<PeakRecordPtr> > end_it;
+    bool include_start(const std::string chr, int start);
+    bool include_end(const std::string chr, int start, int end);
+    std::map<std::string, std::map<int, std::map<int, std::vector<PeakRecordPtr> > > >::iterator chr_it;
+    std::map<int, std::map<int, std::vector<PeakRecordPtr> > >::iterator start_it;
+    std::map<int, std::vector<PeakRecordPtr> >::iterator end_it;
+    std::string filename;
 public:
     bool load (const std::string & full_filename);
+    bool save (const std::string & output_filename);
     bool next();
+    bool has_next();
     std::vector<PeakRecordPtr> value();
     Coord coordinates();
+    void print (ostream& output_stream);
+    std::string get_filename();
     void reset(); // reset iterators and current_record for next function
-    bool update (std::string chr, long start, long end, GeneInfo new_gene_info);
+    bool update (std::string chr, int start, int end, const GeneInfo & new_gene_info);
     PeakReader (const std::string & full_filename);
-}
+};
 
 
 #endif // PEAK_READER_HPP

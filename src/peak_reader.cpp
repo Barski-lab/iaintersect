@@ -12,11 +12,11 @@ PeakRecord::PeakRecord(const std::string & line){
     }
     chr = line_splitted[0];
     // start
-    if (not str_to_long(start, line_splitted[1])){
+    if (not str_to_int(start, line_splitted[1])){
         throw ("PeakRecord constructor error");
     }
     // end
-    if (not str_to_long(end, line_splitted[2])){
+    if (not str_to_int(end, line_splitted[2])){
         throw ("PeakRecord constructor error");
     }
     // length
@@ -24,7 +24,7 @@ PeakRecord::PeakRecord(const std::string & line){
         throw ("PeakRecord constructor error");
     }
     // abs_summit
-    if (not str_to_long(abs_summit, line_splitted[4])){
+    if (not str_to_int(abs_summit, line_splitted[4])){
         throw ("PeakRecord constructor error");
     }
     // pileup
@@ -48,21 +48,23 @@ PeakRecord::PeakRecord(const std::string & line){
 
 
 PeakReader::PeakReader(const std::string & full_filename){
-    load (full_filename);
+    if (!load (full_filename)){
+        throw "PeakReader construcctor error: couldn't load any data";
+    }
 }
 
 
 bool PeakReader::include_chr(const std::string chr){
-    std::map<std::string, std::map<long, std::map<long, std::vector<PeakRecordPtr> > > >::iterator it = peak_data.find(chr);
+    std::map<std::string, std::map<int, std::map<int, std::vector<PeakRecordPtr> > > >::iterator it = peak_data.find(chr);
     if(it != peak_data.end()) {
         return true;
     }
     return false;
 }
 
-bool PeakReader::include_start(const std::string chr, long start){
+bool PeakReader::include_start(const std::string chr, int start){
     if (include_chr(chr)){
-        std::map<long, std::map<long, std::vector<PeakRecordPtr> > >::iterator it = peak_data[chr].find(start);
+        std::map<int, std::map<int, std::vector<PeakRecordPtr> > >::iterator it = peak_data[chr].find(start);
         if(it != peak_data[chr].end()) {
             return true;
         }
@@ -70,9 +72,9 @@ bool PeakReader::include_start(const std::string chr, long start){
     return false;
 }
 
-bool PeakReader::include_end(const std::string chr, long start, long end){
+bool PeakReader::include_end(const std::string chr, int start, int end){
     if ( include_start(chr,start) ){
-        std::map<long, std::vector<PeakRecordPtr> >::iterator it = peak_data[chr][start].find(end);
+        std::map<int, std::vector<PeakRecordPtr> >::iterator it = peak_data[chr][start].find(end);
         if(it != peak_data[chr][start].end()) {
             return true;
         }
@@ -87,9 +89,9 @@ void PeakReader::reset(){
 }
 
 bool PeakReader::next(){
-    std::map<std::string, std::map<long, std::map<long, std::vector<PeakRecordPtr> > > >::iterator chr_it_copy = chr_it;
-    std::map<long, std::map<long, std::vector<PeakRecordPtr> > > start_it_copy = start_it;
-    std::map<long, std::vector<PeakRecordPtr> > end_it_copy = end_it;
+    std::map<std::string, std::map<int, std::map<int, std::vector<PeakRecordPtr> > > >::iterator chr_it_copy = chr_it;
+    std::map<int, std::map<int, std::vector<PeakRecordPtr> > >::iterator start_it_copy = start_it;
+    std::map<int, std::vector<PeakRecordPtr> >::iterator end_it_copy = end_it;
     if (++end_it_copy != start_it->second.end()){
         end_it++;
     } else if (++start_it_copy != chr_it->second.end()){
@@ -105,15 +107,26 @@ bool PeakReader::next(){
     return true;
 }
 
-PeakRecordPtr PeakReader::value(){
+bool PeakReader::has_next(){
+    std::map<std::string, std::map<int, std::map<int, std::vector<PeakRecordPtr> > > >::iterator chr_it_copy = chr_it;
+    std::map<int, std::map<int, std::vector<PeakRecordPtr> > >::iterator start_it_copy = start_it;
+    std::map<int, std::vector<PeakRecordPtr> >::iterator end_it_copy = end_it;
+    if (++end_it_copy != start_it->second.end() or ++start_it_copy != chr_it->second.end() or ++chr_it_copy != peak_data.end()){
+        return true;
+    };
+    return false;
+}
+
+
+std::vector<PeakRecordPtr> PeakReader::value(){
     return end_it->second;
 }
 
 Coord PeakReader::coordinates(){
-    return Coord (end_it->second[0].chr, end_it->second[0].start, end_it->second[0].end);
+    return Coord (end_it->second[0]->chr, end_it->second[0]->start, end_it->second[0]->end);
 }
 
-PeakReader::load(const std::string & full_filename){
+bool PeakReader::load(const std::string & full_filename){
     ifstream input_stream (full_filename);
     if (!input_stream) {
         cout << "Cannot open file " << full_filename << endl;
@@ -122,7 +135,7 @@ PeakReader::load(const std::string & full_filename){
     string line;
     while (getline(input_stream, line)) {
         if (include_key(line, "#") || include_key(line, "start")) { // to filter commented lines and header
-            cout << "Filtered line: " << line << endl;
+//            cout << "Filtered line: " << line << endl;
             continue;
         }
         PeakRecordPtr new_peak_record_ptr;
@@ -130,27 +143,27 @@ PeakReader::load(const std::string & full_filename){
             PeakRecordPtr temp (new PeakRecord (line) ); // Could be redundant
             new_peak_record_ptr = temp;
         } catch (...){
-            cout << "Skipped line [" << line << "]" << endl;
+//            cout << "Skipped line [" << line << "]" << endl;
             continue;
         }
 
 //      [chromosome][peak start][peak end] = vector of PeakRecord
-//      std::map<std::string, std::map<long, std::map<long, std::vector<PeakRecordPtr> > > > peak_data;
-        std::string chr = new_peak_record.chr;
-        std::string start = new_peak_record.start;
-        std::string end = new_peak_record.end;
+//      std::map<std::string, std::map<int, std::map<int, std::vector<PeakRecordPtr> > > > peak_data;
+        std::string chr = new_peak_record_ptr->chr;
+        int start = new_peak_record_ptr->start;
+        int end = new_peak_record_ptr->end;
         if (! include_chr(chr)){
             std::vector <PeakRecordPtr> peak_ptr_vectror;
-            std::map<long, std::vector<PeakRecordPtr> > end_layer_map;
-            std::map<long, std::map<long, std::vector<PeakRecordPtr> > > start_layer_map;
+            std::map<int, std::vector<PeakRecordPtr> > end_layer_map;
+            std::map<int, std::map<int, std::vector<PeakRecordPtr> > > start_layer_map;
             peak_ptr_vectror.push_back(new_peak_record_ptr);
             end_layer_map[end] = peak_ptr_vectror;
             start_layer_map[start] = end_layer_map;
             peak_data[chr] = start_layer_map;
         } else if (! include_start(chr, start)){
             std::vector <PeakRecordPtr> peak_ptr_vectror;
-            std::map<long, std::vector<PeakRecordPtr> > end_layer_map;
-            eak_ptr_vectror.push_back(new_peak_record_ptr);
+            std::map<int, std::vector<PeakRecordPtr> > end_layer_map;
+            peak_ptr_vectror.push_back(new_peak_record_ptr);
             end_layer_map[end] = peak_ptr_vectror;
             peak_data[chr][start] = end_layer_map;
         } else if (! include_end(chr, start, end)){
@@ -161,15 +174,101 @@ PeakReader::load(const std::string & full_filename){
             peak_data[chr][start][end].push_back(new_peak_record_ptr);
         }
     }
+    if (peak_data.size() == 0){
+        // cout << "Couldn't load any data from file" < endl;
+        return false;
+    }
     reset();
+    filename = full_filename;
+    return true;
 }
 
-bool PeakReader::update (std::string chr, long start, long end, GeneInfo new_gene_info){
+bool PeakReader::update (std::string chr, int start, int end, const GeneInfo & new_gene_info){
     if (include_end(chr, start, end)){
-        for (int i = 0; peak_data[chr][start][end].length(); i++){
-            peak_data[chr][start][end][i].gene_info = new_gene_info;
+        for (int i = 0; i < peak_data[chr][start][end].size(); i++){
+            peak_data[chr][start][end][i]->gene_info = new_gene_info;
         }
         return true;
     }
     return false;
+}
+
+void PeakReader::print(ostream& output_stream){
+    reset();
+    output_stream // header line
+            << "refseq_id" << "\t"
+            << "gene_id" << "\t"
+            << "txStart" << "\t"
+            << "txEnd" << "\t"
+            << "strand" << "\t"
+            << "chrom" << "\t"
+            << "start" << "\t"
+            << "end" << "\t"
+            << "length" << "\t"
+            << "abssummit" << "\t"
+            << "pileup" << "\t"
+            << "log10p" << "\t"
+            << "foldenrich" << "\t"
+            << "log10q" << "\t"
+            << "region" << endl;
+    do {
+        for (int i = 0; i < value().size(); i++){
+            output_stream << value()[i]->gene_info.refseq_id << "\t";
+            output_stream << value()[i]->gene_info.gene_id << "\t";
+            output_stream << value()[i]->gene_info.txStart << "\t";
+            output_stream << value()[i]->gene_info.txEnd << "\t";
+            output_stream << value()[i]->gene_info.strand << "\t";
+            output_stream << value()[i]->chr << "\t";
+            output_stream << value()[i]->start << "\t";
+            output_stream << value()[i]->end << "\t";
+            output_stream << value()[i]->length << "\t";
+            output_stream << value()[i]->abs_summit << "\t";
+            output_stream << value()[i]->pileup << "\t";
+            output_stream << value()[i]->log10p << "\t";
+            output_stream << value()[i]->fold_enrichment << "\t";
+            output_stream << value()[i]->log10q << "\t";
+            output_stream << value()[i]->gene_info.region << endl;
+        };
+    } while (next());
+}
+
+std::string PeakReader::get_filename(){
+    return filename;
+}
+
+bool PeakReader::save (const std::string & output_filename){
+    ofstream output_stream (output_filename);
+    if (output_stream.is_open())
+    {
+        print(output_stream);
+        output_stream.close();
+        return true;
+    }
+    return false;
+}
+
+void PeakRecord::print(){
+    cout << "PeakRecord" << endl;
+    cout << "   start: " << start << endl;
+    cout << "   end: " << end << endl;
+    cout << "   length: " << length << endl;
+    cout << "   abs_summit: " << abs_summit << endl;
+    cout << "   pileup: " << pileup << endl;
+    cout << "   log10p: " << log10p << endl;
+    cout << "   fold_enrichment: " << fold_enrichment << endl;
+    cout << "   log10q: " << log10q << endl;
+    cout << "   name: " << name << endl;
+    gene_info.print();
+    cout << endl;
+}
+
+void GeneInfo::print(){
+    cout << "GeneInfo" << endl;
+    cout << "   refseq_id: " << refseq_id << endl;
+    cout << "   gene_id: " << gene_id << endl;
+    cout << "   txStart: " << txStart << endl;
+    cout << "   txEnd: " << txEnd << endl;
+    cout << "   strand: " << strand << endl;
+    cout << "   region: " << region << endl;
+    cout << endl;
 }

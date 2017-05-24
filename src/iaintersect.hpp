@@ -3,6 +3,7 @@
 
 
 #include <config.hpp>
+#include "peak_reader.hpp"
 
 #ifndef FSTM
 #define FSTM IAIntersect
@@ -16,8 +17,8 @@ struct Annotation {
         QStringList exonEnds;
         QString name;
         QString name2;
-        qint64 txStart;
-        qint64 txEnd;
+        int txStart;
+        int txEnd;
         Annotation(){};
         Annotation(QString c,
                    QChar s,
@@ -26,8 +27,8 @@ struct Annotation {
                    QStringList eE,
                    QString n,
                    QString n2,
-                   qint64 txS,
-                   qint64 txE):
+                   int txS,
+                   int txE):
             chrom(c),
             strand(s),
             exonCount(ec),
@@ -40,7 +41,7 @@ struct Annotation {
 
 };
 
-typedef qint64 t_genome_coordinates;
+typedef int t_genome_coordinates;
 typedef QSharedPointer<Annotation> annotationPtr;
 typedef bicl::split_interval_map<t_genome_coordinates,QSet< annotationPtr > > chrom_coverage;
 
