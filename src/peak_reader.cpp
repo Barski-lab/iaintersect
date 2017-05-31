@@ -127,7 +127,7 @@ Coord PeakReader::coordinates(){
 }
 
 bool PeakReader::load(const std::string & full_filename){
-    ifstream input_stream (full_filename);
+    ifstream input_stream (full_filename.c_str());
     if (!input_stream) {
         cout << "Cannot open file " << full_filename << endl;
         return false;
@@ -237,7 +237,7 @@ std::string PeakReader::get_filename(){
 }
 
 bool PeakReader::save (const std::string & output_filename){
-    ofstream output_stream (output_filename);
+    ofstream output_stream (output_filename.c_str());
     if (output_stream.is_open())
     {
         print(output_stream);
