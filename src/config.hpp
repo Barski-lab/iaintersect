@@ -32,6 +32,7 @@
 #include <QDateTime>
 #include <QVector>
 #include <QSettings>
+#include <QMap>
 #include <QTextCodec>
 #include <QObject>
 #include <QHash>

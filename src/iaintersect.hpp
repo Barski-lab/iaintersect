@@ -4,6 +4,8 @@
 
 #include <config.hpp>
 #include "peak_reader.hpp"
+#include <QMap>
+
 
 #ifndef FSTM
 #define FSTM IAIntersect
@@ -43,7 +45,16 @@ struct Annotation {
 
 typedef int t_genome_coordinates;
 typedef QSharedPointer<Annotation> annotationPtr;
-typedef bicl::split_interval_map<t_genome_coordinates,QSet< annotationPtr > > chrom_coverage;
+
+class AnnotationMap
+{
+    public:
+        QMultiMap <QString, annotationPtr> data;
+        AnnotationMap& operator+=(const AnnotationMap& other);
+        bool operator==(const AnnotationMap& other) const;
+};
+
+typedef bicl::split_interval_map<t_genome_coordinates, AnnotationMap > chrom_coverage;
 
 class IAIntersect: public QObject
 {
