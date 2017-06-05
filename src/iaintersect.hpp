@@ -45,11 +45,13 @@ struct Annotation {
 
 typedef int t_genome_coordinates;
 typedef QSharedPointer<Annotation> annotationPtr;
+typedef QPair<int, int> coord_key;
+
 
 class AnnotationMap
 {
     public:
-        QMultiMap <QString, annotationPtr> data;
+        QMultiMap <coord_key, annotationPtr> data;
         AnnotationMap& operator+=(const AnnotationMap& other);
         bool operator==(const AnnotationMap& other) const;
 };

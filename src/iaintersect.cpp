@@ -79,7 +79,7 @@ void IAIntersect::fillUpAnnotation( ) {
         annotationPtr p( new Annotation(chr,strand,exCount,q_starts,q_ends,iso_name,g_name,txStart,txEnd) );
 
         AnnotationMap aptr;
-        aptr.data.insert(QString::number(txStart)+QString::number(txEnd), p);
+        aptr.data.insert(coord_key(txStart,txEnd), p);
 
         if(strand=='+') {
             if(promoter+upstream >txStart)
@@ -150,7 +150,7 @@ void IAIntersect::start() {
             else
                 it=itu;
 
-            QMapIterator<QString, annotationPtr> i((*it).second.data);
+            QMapIterator<coord_key, annotationPtr> i((*it).second.data);
 
             while(i.hasNext()){
                 annotationPtr p(i.next().value());
@@ -184,7 +184,7 @@ void IAIntersect::start() {
             //chrom_coverage::interval_type itv = bicl::key_value<chrom_coverage >(pi.first);
 //            qDebug()<<chr<<"["<<itv.lower()<<":"<<itv.upper()<<"]=["<<start<<":"<<end<<"]";
 
-            QMapIterator<QString, annotationPtr> i((*(pi.first)).second.data);
+            QMapIterator<coord_key, annotationPtr> i((*(pi.first)).second.data);
             while(i.hasNext()){
                 annotationPtr p(i.next().value());
                 bicl::discrete_interval<t_genome_coordinates> _promoter;
@@ -206,7 +206,7 @@ void IAIntersect::start() {
 
                 //is promoter
                 if(bicl::intersects(current_region,_promoter)) {
-                    result[1].data.insert(QString::number(p->txStart)+QString::number(p->txEnd), p);
+                    result[1].data.insert(coord_key(p->txStart,p->txEnd), p);
                     continue;
                 }
 
@@ -214,7 +214,7 @@ void IAIntersect::start() {
                     continue;
                 //is intron
                 if(bicl::intersects(current_region,_gene)) {
-                    result[3].data.insert(QString::number(p->txStart)+QString::number(p->txEnd), p);
+                    result[3].data.insert(coord_key(p->txStart,p->txEnd), p);
                 }
 
                 //is Exon
@@ -225,7 +225,7 @@ void IAIntersect::start() {
                 }
 
                 if(bicl::intersects(_exons,current_region)) {
-                    result[2].data.insert(QString::number(p->txStart)+QString::number(p->txEnd), p);
+                    result[2].data.insert(coord_key(p->txStart,p->txEnd), p);
                     continue;
                 }
                 if(result.contains(2) || result.contains(3))//skeep all others
@@ -233,7 +233,7 @@ void IAIntersect::start() {
 
                 //is upstream
                 if(bicl::intersects(current_region,_upstream)) {
-                    result[4].data.insert(QString::number(p->txStart)+QString::number(p->txEnd), p);
+                    result[4].data.insert(coord_key(p->txStart,p->txEnd), p);
                     //                    qDebug()<<chr<<"["<<_promoter.lower()<<":"<<_promoter.upper()<<"]=["<<current_region.lower()<<":"<<current_region.upper()<<"]";
                     continue;
                 }
@@ -259,7 +259,7 @@ void IAIntersect::start() {
                 break;
         }
 
-        QMapIterator<QString, annotationPtr> i(mit.value().data);
+        QMapIterator<coord_key, annotationPtr> i(mit.value().data);
         while(i.hasNext()){
             annotationPtr p(i.next().value());
             if(GENE_NAME.isEmpty()) {

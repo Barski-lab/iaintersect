@@ -33,6 +33,7 @@
 #include <QVector>
 #include <QSettings>
 #include <QMap>
+#include <QPair>
 #include <QTextCodec>
 #include <QObject>
 #include <QHash>
