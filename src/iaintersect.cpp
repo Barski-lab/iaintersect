@@ -13,8 +13,10 @@ IAIntersect::~IAIntersect()
 
 AnnotationMap& AnnotationMap::operator+=(const AnnotationMap& other)
 {
-    for(auto key : other.data.keys()) {
-        this->data.insertMulti(key, other.data.value(key));
+    QMapIterator<coord_key, annotationPtr> iter (other.data);
+    while (iter.hasNext()) {
+        iter.next();
+        this->data.insertMulti(iter.key(), iter.value());
     }
     return *this;
 }
