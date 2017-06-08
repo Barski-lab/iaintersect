@@ -2,12 +2,12 @@
 
 using namespace string_tools;
 
-PeakRecord::PeakRecord(const std::string & line){
+PeakRecord::PeakRecord(const std::string & line, bool broad){
 
 // chr2L<->18206<->18433<->228<--->18302<->52.00<->17.92226<------>4.15821>16.65316<------>SRR1198790.sorted_peak_1
-
+    broad_flag = broad;
     vector<string> line_splitted = split_line(line);
-    if (line_splitted.size() < 9){
+    if ((broad_flag && line_splitted.size() < 8) || (not broad_flag && line_splitted.size() < 9)){
         throw ("PeakRecord constructor line length error");
     }
     chr = line_splitted[0];
@@ -23,31 +23,40 @@ PeakRecord::PeakRecord(const std::string & line){
     if (not str_to_int(length, line_splitted[3])){
         throw ("PeakRecord constructor error");
     }
+
+    int shift = 1;
     // abs_summit
-    if (not str_to_int(abs_summit, line_splitted[4])){
-        throw ("PeakRecord constructor error");
+    if (broad_flag){
+        abs_summit = 0;
+        shift = 0;
+    } else {
+        if (not str_to_int(abs_summit, line_splitted[3+shift])){
+            throw ("PeakRecord constructor error");
+        }
     }
+
     // pileup
-    if (not str_to_double(pileup, line_splitted[5])){
+    if (not str_to_double(pileup, line_splitted[4+shift])){
         throw ("PeakRecord constructor error");
     }
     // log10p
-    if (not str_to_double(log10p, line_splitted[6])){
+    if (not str_to_double(log10p, line_splitted[5+shift])){
         throw ("PeakRecord constructor error");
     }
     // fold_enrichment
-    if (not str_to_double(fold_enrichment, line_splitted[7])){
+    if (not str_to_double(fold_enrichment, line_splitted[6+shift])){
         throw ("PeakRecord constructor error");
     }
     // log10q
-    if (not str_to_double(log10q, line_splitted[8])){
+    if (not str_to_double(log10q, line_splitted[7+shift])){
         throw ("PeakRecord constructor error");
     }
-    name = line_splitted[9];
+    name = line_splitted[8+shift];
 }
 
 
 PeakReader::PeakReader(const std::string & full_filename){
+    broad_flag = false;
     if (!load (full_filename)){
         throw "PeakReader construcctor error: couldn't load any data";
     }
@@ -133,19 +142,38 @@ bool PeakReader::load(const std::string & full_filename){
         return false;
     }
     string line;
+    bool header_found = false;
     while (getline(input_stream, line)) {
-        if (include_key(line, "#") || include_key(line, "start")) { // to filter commented lines and header
+        if (include_key(line, "#")) { // to filter commented lines
 //            cout << "Filtered line: " << line << endl;
             continue;
         }
         PeakRecordPtr new_peak_record_ptr;
         try {
-            PeakRecordPtr temp (new PeakRecord (line) ); // Could be redundant
+            PeakRecordPtr temp (new PeakRecord (line, broad_flag) ); // Could be redundant
             new_peak_record_ptr = temp;
         } catch (...){
-//            cout << "Skipped line [" << line << "]" << endl;
+            // Check if it was header line
+            if (include_key(line, "pileup")){ // header found
+//                cout << "Header found" << endl;
+                header_found = true;
+                if (not include_key(line, "abs_summit")){ // broad peak type
+                    broad_flag = true;
+                }
+//                cout << "Broad: " << broad_flag << endl;
+            }
+//          cout << "Skipped line [" << line << "]" << endl;
+          continue;
+        }
+
+        if (not header_found){
+//            cout << "Header not found in line" << endl;
+//            cout << line << endl;
             continue;
         }
+
+//      Start adding items to peak_data only after header line is found
+
 
 //      [chromosome][peak start][peak end] = vector of PeakRecord
 //      std::map<std::string, std::map<int, std::map<int, std::vector<PeakRecordPtr> > > > peak_data;

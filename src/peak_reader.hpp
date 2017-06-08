@@ -49,7 +49,8 @@ public:
     double log10q;
     std::string name;
     GeneInfo gene_info;
-    PeakRecord (const std::string & line);
+    bool broad_flag;
+    PeakRecord (const std::string & line, bool broad);
     void print();
 };
 
@@ -79,6 +80,7 @@ private:
     std::map<int, std::map<int, std::vector<PeakRecordPtr> > >::iterator start_it;
     std::map<int, std::vector<PeakRecordPtr> >::iterator end_it;
     std::string filename;
+    bool broad_flag;
 public:
     bool load (const std::string & full_filename);
     bool save (const std::string & output_filename);
