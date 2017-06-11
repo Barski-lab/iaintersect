@@ -175,7 +175,7 @@ void IAIntersect::start() {
                 gene_name+=","+GENE_NAME.value(i);
                 refseq_name+=","+REFSEQ_NAME.value(i);
             }
-            if(!peak_reader.update(chr.toStdString(), start, end, GeneInfo(refseq_name.toStdString(), gene_name.toStdString(), txStart, txEnd, strand.toLatin1(), "intergenic")) ) {
+            if(!peak_reader.update(chr.toStdString(), start, end, GeneInfo(refseq_name.toStdString(), gene_name.toStdString(), txStart, txEnd, QString(strand).toStdString(), "intergenic")) ) {
                 throw "Error updating islands";
             }
             continue;
@@ -283,7 +283,7 @@ void IAIntersect::start() {
             gene_name+=","+GENE_NAME.value(i);
             refseq_name+=","+REFSEQ_NAME.value(i);
         }
-        if(!peak_reader.update(chr.toStdString(), start, end, GeneInfo(refseq_name.toStdString(), gene_name.toStdString(), txStart, txEnd, strand.toLatin1(), region.toStdString())) ){
+        if(!peak_reader.update(chr.toStdString(), start, end, GeneInfo(refseq_name.toStdString(), gene_name.toStdString(), txStart, txEnd, QString(strand).toStdString(), region.toStdString())) ){
             throw "Error updating islands";
         }
     } while (peak_reader.next());

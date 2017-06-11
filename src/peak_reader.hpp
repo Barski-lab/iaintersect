@@ -10,10 +10,10 @@ public:
     std::string gene_id;
     int txStart;
     int txEnd;
-    char strand;
+    std::string strand;
     std::string region;
 
-    GeneInfo (std::string new_refseq_id, std::string new_gene_id, int new_txStart, int new_txEnd, char new_strand, std::string new_region)
+    GeneInfo (std::string new_refseq_id, std::string new_gene_id, int new_txStart, int new_txEnd, std::string new_strand, std::string new_region)
         : refseq_id (new_refseq_id)
         , gene_id (new_gene_id)
         , txStart (new_txStart)
@@ -24,12 +24,12 @@ public:
     };
 
     GeneInfo()
-        : refseq_id ("")
-        , gene_id ("")
+        : refseq_id ("NULL")
+        , gene_id ("NULL")
         , txStart (0)
         , txEnd (0)
-        , strand ('+')
-        , region ("")
+        , strand ("NULL")
+        , region ("NULL")
     {
 
     };

@@ -243,8 +243,13 @@ void PeakReader::print(ostream& output_stream){
         for (int i = 0; i < value().size(); i++){
             output_stream << value()[i]->gene_info.refseq_id << "\t";
             output_stream << value()[i]->gene_info.gene_id << "\t";
-            output_stream << value()[i]->gene_info.txStart << "\t";
-            output_stream << value()[i]->gene_info.txEnd << "\t";
+            if (value()[i]->gene_info.gene_id == "NULL"){
+                output_stream << "NULL" << "\t";
+                output_stream << "NULL" << "\t";
+            } else {
+                output_stream << value()[i]->gene_info.txStart << "\t";
+                output_stream << value()[i]->gene_info.txEnd << "\t";
+            }
             output_stream << value()[i]->gene_info.strand << "\t";
             output_stream << value()[i]->chr << "\t";
             output_stream << value()[i]->start << "\t";
@@ -294,8 +299,13 @@ void GeneInfo::print(){
     cout << "GeneInfo" << endl;
     cout << "   refseq_id: " << refseq_id << endl;
     cout << "   gene_id: " << gene_id << endl;
-    cout << "   txStart: " << txStart << endl;
-    cout << "   txEnd: " << txEnd << endl;
+    if (gene_id == "NULL"){
+        cout << "   txStart: " << "NULL" << endl;
+        cout << "   txEnd: " << "NULL" << endl;
+    } else {
+        cout << "   txStart: " << txStart << endl;
+        cout << "   txEnd: " << txEnd << endl;
+    }
     cout << "   strand: " << strand << endl;
     cout << "   region: " << region << endl;
     cout << endl;
